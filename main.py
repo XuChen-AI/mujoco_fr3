@@ -1,9 +1,18 @@
 import mujoco
 import mujoco.viewer
 
-# 从XML文件加载MuJoCo模型
-m = mujoco.MjModel.from_xml_path('description/fr3.xml')
+# 从XML文件加载MuJoCo模型 - 使用包含场景背景的文件
+m = mujoco.MjModel.from_xml_path('description/scene.xml')
 d = mujoco.MjData(m)
+
+# 设置机械臂到常规初始位置（home姿态）
+# FR3的常规位置：关节角度设置为适合操作的姿态
+home_position = [0, -0.785, 0, -2.356, 0, 1.571, 0.785]  # 弧度制
+d.qpos[:7] = home_position  # 设置关节位置
+d.ctrl[:7] = home_position  # 设置控制器目标
+
+# 前向运动学计算，更新机械臂状态
+mujoco.mj_forward(m, d)
 
 # 启动交互式可视化器
 with mujoco.viewer.launch_passive(m, d) as viewer:
