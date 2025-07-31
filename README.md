@@ -1,11 +1,13 @@
 # MuJoCo FR3 Robot Control Library
 
-A comprehensive Python library for controlling the Franka Research 3 (FR3) robot arm using MuJoCo physics simulation. This library provides forward/inverse kinematics, dynamics modeling, and advanced control algorithms.
+A comprehensive Python library for controlling the Franka Research 3 (FR3) robot arm using MuJoCo physics simulation. This library provides forward/inverse kinematics, dynamics modeling, trajectory planning, and advanced control algorithms with interactive demonstration capabilities.
 
 ## Features
 
 - **Forward Kinematics**: Compute end-effector pose from joint angles
 - **Inverse Kinematics**: Solve for joint angles given target end-effector pose
+- **Trajectory Planning**: Advanced trajectory planning with smooth motion generation
+- **Interactive Control**: Real-time interactive trajectory planning and execution
 - **Gravity Compensation**: Advanced gravity compensation with adaptive control
 - **Admittance Control**: Compliant robot behavior for human-robot interaction
 - **MuJoCo Integration**: Full integration with MuJoCo physics simulation
@@ -33,6 +35,27 @@ cd mujoco_fr3
 ```
 
 ## Quick Start
+
+### Interactive Trajectory Planning Demo
+
+The fastest way to get started is to run the interactive trajectory planning demonstration:
+
+```bash
+cd mujoco_fr3
+python test/minimal_sim.py
+```
+
+This will launch an interactive MuJoCo simulation where you can:
+- Input target coordinates for the robot to move to
+- Watch smooth trajectory execution in real-time
+- Switch between manual input mode and automatic demo mode
+- Verify position accuracy after each movement
+
+**Usage Instructions:**
+1. Enter target coordinates (x, y, z) in meters when prompted
+2. Type 'demo' to switch to automatic demonstration mode
+3. Type 'q' to quit the program
+4. The robot will plan and execute smooth trajectories to each target
 
 ### Basic Forward Kinematics
 
@@ -75,6 +98,31 @@ if success:
     print(f"Position error: {error:.6f} m")
 else:
     print("No solution found")
+```
+
+### Trajectory Planning and Execution
+
+```python
+from planning.trajectory_planner import TrajectoryPlanner
+
+# Initialize trajectory planner
+planner = TrajectoryPlanner()
+
+# Plan trajectory between two joint configurations
+start_joints = [0, -0.785, 0, -2.356, 0, 1.571, 0.785]  # Home position
+target_joints = [0.5, -0.5, 0.3, -2.0, 0.2, 1.8, 0.4]  # Target configuration
+
+# Generate smooth trajectory
+trajectory = planner.plan_comfortable_trajectory(start_joints, target_joints)
+
+print(f"Generated trajectory with {len(trajectory)} waypoints")
+
+# Execute trajectory in simulation
+for i, joint_config in enumerate(trajectory):
+    data.qpos[:7] = joint_config
+    data.ctrl[:7] = joint_config  # Position control
+    mujoco.mj_step(model, data)
+    time.sleep(0.01)  # Control timing
 ```
 
 ### Gravity Compensation
@@ -124,11 +172,48 @@ mujoco_fr3/
 │   └── gravity_compensation.py
 ├── controllers/          # Control algorithms
 │   └── admittance_controller.py
+├── planning/             # Trajectory planning
+│   └── trajectory_planner.py
+├── test/                 # Demonstration and test scripts
+│   └── minimal_sim.py    # Interactive trajectory demo
 └── description/          # Robot model files
     ├── fr3.xml           # FR3 robot model
     ├── scene.xml         # Complete scene
+    ├── scene_with_axes.xml # Scene with coordinate axes
     └── assets/           # Mesh files
 ```
+
+## Interactive Demo Features
+
+The `test/minimal_sim.py` provides a comprehensive demonstration of the library capabilities:
+
+### Key Features
+- **Real-time Visualization**: Live MuJoCo simulation with 3D visualization
+- **Interactive Input**: Command-line interface for target position input
+- **Trajectory Verification**: Automatic verification of position accuracy
+- **Demo Mode**: Automated demonstration of various target positions
+- **Smooth Motion**: Advanced trajectory planning for natural robot movement
+- **Position Holding**: Rigid position maintenance between movements
+
+### Demo Usage Examples
+
+**Manual Mode:**
+```
+X坐标: 0.6
+Y坐标: 0.2  
+Z坐标: 0.4
+```
+
+**Demo Mode:**
+```
+输入: demo
+```
+Automatically cycles through predefined target positions.
+
+### Control Modes
+1. **Manual Input**: User specifies target coordinates
+2. **Demo Mode**: Automated sequence of demonstration movements  
+3. **Position Holding**: Maintains current position when not executing trajectories
 
 ## Robot Model Parameters
 
@@ -199,6 +284,25 @@ Some parameters may differ slightly from standard URDF models due to:
 3. **Simulation requirements**: Adjusted for real-time performance
 
 ## Advanced Usage
+
+### Complete Trajectory Planning System
+
+The library implements a comprehensive trajectory planning system as demonstrated in `test/minimal_sim.py`:
+
+```python
+from test.minimal_sim import FR3TrajectoryDemo
+
+# Create and run the interactive demo
+demo = FR3TrajectoryDemo()
+demo.run_interactive_demo()
+```
+
+**Key Features of the Trajectory System:**
+- **Intelligent Planning**: Considers joint comfort and natural motion
+- **Real-time Verification**: Automatic validation of target achievement
+- **Interactive Control**: Seamless switching between manual and demo modes
+- **Position Holding**: Rigid position maintenance during user interaction
+- **Error Reporting**: Detailed position error analysis
 
 ### Custom Inverse Kinematics Solver
 
@@ -282,11 +386,31 @@ adaptive_torques = adaptive_comp.compute_gravity_compensation(data)
 
 ## Contributing
 
+We welcome contributions! Areas where contributions would be particularly valuable:
+
+1. **Enhanced Trajectory Planning**: Additional interpolation methods, obstacle avoidance
+2. **Control Algorithms**: PID tuning, advanced control strategies
+3. **Visualization**: Enhanced 3D visualization, trajectory visualization
+4. **Documentation**: Additional examples, tutorials
+5. **Testing**: Unit tests, integration tests
+
+### Development Process
+
 1. Fork the repository
 2. Create a feature branch (`git checkout -b feature/amazing-feature`)
 3. Commit your changes (`git commit -m 'Add amazing feature'`)
 4. Push to the branch (`git push origin feature/amazing-feature`)
 5. Open a Pull Request
+
+## Demo Video and Screenshots
+
+The interactive trajectory planning demo (`test/minimal_sim.py`) showcases:
+- Real-time 3D visualization of FR3 robot
+- Smooth trajectory execution with position verification
+- Interactive command-line interface
+- Automatic demo mode with predefined targets
+
+*Note: Screenshots and video demonstrations can be found in the repository's documentation folder.*
 
 ## License
 

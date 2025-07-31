@@ -1,11 +1,13 @@
 # MuJoCo FR3 机器人控制库
 
-一个用于在 MuJoCo 物理仿真环境中控制 Franka Research 3 (FR3) 机械臂的综合 Python 库。该库提供正向/逆向运动学、动力学建模和先进的控制算法。
+一个用于在 MuJoCo 物理仿真环境中控制 Franka Research 3 (FR3) 机械臂的综合 Python 库。该库提供正向/逆向运动学、动力学建模、轨迹规划和先进的控制算法，具备交互式演示功能。
 
 ## 功能特性
 
 - **正向运动学**：根据关节角度计算末端执行器位姿
 - **逆向运动学**：根据目标末端执行器位姿求解关节角度
+- **轨迹规划**：先进的轨迹规划，生成平滑运动
+- **交互式控制**：实时交互式轨迹规划和执行
 - **重力补偿**：具有自适应控制的先进重力补偿
 - **导纳控制**：用于人机交互的柔顺机器人行为
 - **MuJoCo 集成**：与 MuJoCo 物理仿真的完整集成
@@ -33,6 +35,27 @@ cd mujoco_fr3
 ```
 
 ## 快速开始
+
+### 交互式轨迹规划演示
+
+最快的入门方式是运行交互式轨迹规划演示：
+
+```bash
+cd mujoco_fr3
+python test/minimal_sim.py
+```
+
+这将启动一个交互式 MuJoCo 仿真，您可以：
+- 输入机器人移动的目标坐标
+- 实时观看平滑轨迹执行
+- 在手动输入模式和自动演示模式之间切换
+- 验证每次移动后的位置精度
+
+**使用说明：**
+1. 在提示时输入目标坐标 (x, y, z)，单位为米
+2. 输入 'demo' 切换到自动演示模式
+3. 输入 'q' 退出程序
+4. 机器人将规划并执行到每个目标的平滑轨迹
 
 ### 基础正向运动学
 
@@ -75,6 +98,31 @@ if success:
     print(f"位置误差: {error:.6f} m")
 else:
     print("未找到解")
+```
+
+### 轨迹规划和执行
+
+```python
+from planning.trajectory_planner import TrajectoryPlanner
+
+# 初始化轨迹规划器
+planner = TrajectoryPlanner()
+
+# 在两个关节配置之间规划轨迹
+start_joints = [0, -0.785, 0, -2.356, 0, 1.571, 0.785]  # 初始位置
+target_joints = [0.5, -0.5, 0.3, -2.0, 0.2, 1.8, 0.4]  # 目标配置
+
+# 生成平滑轨迹
+trajectory = planner.plan_comfortable_trajectory(start_joints, target_joints)
+
+print(f"生成了包含 {len(trajectory)} 个路径点的轨迹")
+
+# 在仿真中执行轨迹
+for i, joint_config in enumerate(trajectory):
+    data.qpos[:7] = joint_config
+    data.ctrl[:7] = joint_config  # 位置控制
+    mujoco.mj_step(model, data)
+    time.sleep(0.01)  # 控制时序
 ```
 
 ### 重力补偿
@@ -124,11 +172,48 @@ mujoco_fr3/
 │   └── gravity_compensation.py
 ├── controllers/          # 控制算法
 │   └── admittance_controller.py
+├── planning/             # 轨迹规划
+│   └── trajectory_planner.py
+├── test/                 # 演示和测试脚本
+│   └── minimal_sim.py    # 交互式轨迹演示
 └── description/          # 机器人模型文件
     ├── fr3.xml           # FR3 机器人模型
     ├── scene.xml         # 完整场景
+    ├── scene_with_axes.xml # 带坐标轴的场景
     └── assets/           # 网格文件
 ```
+
+## 交互式演示功能
+
+`test/minimal_sim.py` 提供了库功能的综合演示：
+
+### 主要特性
+- **实时可视化**：带有 3D 可视化的实时 MuJoCo 仿真
+- **交互式输入**：用于目标位置输入的命令行界面
+- **轨迹验证**：位置精度的自动验证
+- **演示模式**：各种目标位置的自动演示
+- **平滑运动**：用于自然机器人运动的先进轨迹规划
+- **位置保持**：运动间隔时的刚性位置保持
+
+### 演示使用示例
+
+**手动模式：**
+```
+X坐标: 0.6
+Y坐标: 0.2  
+Z坐标: 0.4
+```
+
+**演示模式：**
+```
+输入: demo
+```
+自动循环预定义的目标位置。
+
+### 控制模式
+1. **手动输入**：用户指定目标坐标
+2. **演示模式**：自动化的演示运动序列  
+3. **位置保持**：不执行轨迹时保持当前位置
 
 ## 机器人模型参数
 
@@ -199,6 +284,25 @@ FR3 机器人模型定义在 `description/fr3.xml` 中，具有以下规格：
 3. **仿真要求**：为实时性能而调整
 
 ## 高级用法
+
+### 完整轨迹规划系统
+
+该库实现了一个综合的轨迹规划系统，如 `test/minimal_sim.py` 中所演示：
+
+```python
+from test.minimal_sim import FR3TrajectoryDemo
+
+# 创建并运行交互式演示
+demo = FR3TrajectoryDemo()
+demo.run_interactive_demo()
+```
+
+**轨迹系统的关键特性：**
+- **智能规划**：考虑关节舒适性和自然运动
+- **实时验证**：目标到达的自动验证
+- **交互式控制**：手动和演示模式间的无缝切换
+- **位置保持**：用户交互期间的刚性位置保持
+- **错误报告**：详细的位置误差分析
 
 ### 自定义逆向运动学求解器
 
@@ -282,11 +386,31 @@ adaptive_torques = adaptive_comp.compute_gravity_compensation(data)
 
 ## 贡献
 
+我们欢迎贡献！以下领域的贡献特别有价值：
+
+1. **增强轨迹规划**：额外的插值方法、避障功能
+2. **控制算法**：PID 调优、先进控制策略
+3. **可视化**：增强的 3D 可视化、轨迹可视化
+4. **文档**：更多示例、教程
+5. **测试**：单元测试、集成测试
+
+### 开发流程
+
 1. Fork 仓库
 2. 创建功能分支 (`git checkout -b feature/amazing-feature`)
 3. 提交更改 (`git commit -m 'Add amazing feature'`)
 4. 推送到分支 (`git push origin feature/amazing-feature`)
 5. 开启 Pull Request
+
+## 演示视频和截图
+
+交互式轨迹规划演示 (`test/minimal_sim.py`) 展示了：
+- FR3 机器人的实时 3D 可视化
+- 带位置验证的平滑轨迹执行
+- 交互式命令行界面
+- 带预定义目标的自动演示模式
+
+*注意：截图和视频演示可在仓库的文档文件夹中找到。*
 
 ## 许可证
 

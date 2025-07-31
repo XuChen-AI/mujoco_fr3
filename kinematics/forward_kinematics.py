@@ -52,6 +52,9 @@ class ForwardKinematics:
                 - position: 3D位置向量 [x, y, z]
                 - orientation_matrix: 3x3旋转矩阵
         """
+        # 保存当前关节角度
+        original_qpos = self.data.qpos[:7].copy()
+        
         # 设置关节角度
         self.data.qpos[:7] = joint_angles
         
@@ -68,6 +71,10 @@ class ForwardKinematics:
         
         # 获取末端执行器旋转矩阵
         rotation_matrix = self.data.xmat[self.end_effector_id].reshape(3, 3).copy()
+        
+        # 恢复原始关节角度
+        self.data.qpos[:7] = original_qpos
+        mujoco.mj_forward(self.model, self.data)
         
         return position, rotation_matrix
     
@@ -100,6 +107,9 @@ class ForwardKinematics:
         Returns:
             numpy.ndarray: 6x7雅可比矩阵 (前3行为位置，后3行为姿态)
         """
+        # 保存当前关节角度
+        original_qpos = self.data.qpos[:7].copy()
+        
         # 设置关节角度
         self.data.qpos[:7] = joint_angles
         mujoco.mj_forward(self.model, self.data)
@@ -116,6 +126,10 @@ class ForwardKinematics:
             # 对body计算雅可比
             mujoco.mj_jac(self.model, self.data, jac_pos, jac_rot, 
                          self.data.xpos[self.end_effector_id], self.end_effector_id)
+        
+        # 恢复原始关节角度
+        self.data.qpos[:7] = original_qpos
+        mujoco.mj_forward(self.model, self.data)
         
         # 只返回前7列（对应7个关节）
         jacobian = np.vstack([jac_pos[:, :7], jac_rot[:, :7]])
